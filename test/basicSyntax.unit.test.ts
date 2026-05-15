@@ -22,11 +22,11 @@ test('Basic Markdown Syntax > Headers', () => {
 test('Basic Markdown Syntax > Text style', () => {
     const input = `*This text will be italic*
 
-_This will also be italic_
+_This will also be italic_ _**strong italic**_
 
-**This text will be bold**
+**This text will be bold** ***strong italic***
 
-__This will also be bold__
+__This will also be bold__ ___strong italic___
 
 %%This is a Comment(Can't see it)%%
 
@@ -104,6 +104,39 @@ Scale image to a width of 100 px
 Scale image to a width of 300x100 px
 
 ![[Image.jpg|300x100]] <!-- element style="object-fit: cover" -->
+
+`;
+
+    const { options, markdown } = prepare(input);
+    const sut = new MarkdownProcessor(utilsInstance);
+
+    const result = JSON.stringify(sut.process(markdown, options));
+    return expect(result).toMatchSnapshot();
+});
+
+test('Basic Markdown Syntax > Images with parens in filename', () => {
+    when(MockedObsidianUtils.findMediaFile('image(1).jpg')).thenCall(arg => {
+        return '/documentation/image(1).jpg';
+    });
+
+    when(MockedObsidianUtils.findMediaFile('image (1).jpg')).thenCall(arg => {
+        return '/documentation/image (1).jpg';
+    });
+
+    when(MockedObsidianUtils.findMediaFile('image.jpg')).thenCall(arg => {
+        return '/documentation/image.jpg';
+    });
+
+    const input = `
+![[image(1).jpg]]
+
+---
+
+![[image (1).jpg]]
+
+---
+
+![image](image.jpg) (note)
 
 `;
 
