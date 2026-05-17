@@ -14,11 +14,71 @@ export class MediaProcessor implements Processor {
     private utils: ObsidianUtils;
     private parser: CommentParser;
 
-    private markdownMediaRegex =
-        /(!)?\[([^\]]*)\]\(((?:[^)(]|\([^)]*\))*?(?:jpg|png|jpeg|gif|bmp|webp|svg|avi|mp4|ogv|mov|webm|mp3|ogg|oga|wav|m4a|flac|opus|mkv)?)(?: ".*?")?\)\s?(<!--.*-->)?/gi;
+    private imageExtensions = [
+        "jpg",
+        "png",
+        "jpeg",
+        "gif",
+        "bmp",
+        "webp",
+        "svg",
+    ];
 
-    private wikilinkMediaRegex =
-        /\[\[(.*?(?:jpg|png|jpeg|webp|gif|bmp|svg|avi|mp4|ogv|mov|webm|mp3|ogg|oga|wav|m4a|flac|opus|mkv))\|?([^\]]*)??\]\]/gi;
+    private audioExtensions = [
+        "mp3",
+        "ogg",
+        "oga",
+        "wav",
+        "m4a",
+        "flac",
+        "opus",
+    ];
+
+    private videoExtensions = ["avi", "mp4", "ogv", "mov", "webm", "mkv"];
+
+    //Regex substrings -- Need double escapes!
+    private supportedExtensionsRe = [
+        ...this.imageExtensions,
+        ...this.videoExtensions,
+        ...this.audioExtensions,
+    ].join("|");
+    private embeddedRe = "(?<embed>!)"; // "!" marking embedded media
+    private altCandidateRe = "(?<altCandidate>[^\\]]*)"; // Link text or/with dimensions
+    private URLorBaseNameRe = "(?:[^)(]|\\([^)]*\\))*?"; // URL or (file path +) base name  -- not used
+    private fileExtensionRe = `(?:\\.(?:${this.supportedExtensionsRe}))`; // Extension with starting dot -- not used
+    private markdownMediaPathRe =
+        `(?<mediaPath>${this.URLorBaseNameRe}${this.fileExtensionRe}?)`; // Extension is optional
+    private wikiMediaPathRe =
+        `(?<mediaPath>${this.URLorBaseNameRe}${this.fileExtensionRe})`; // Extension is madatory
+    private linkTitleRe = '(?: ".*?")'; // Space + link title enclosed in double parentheses -- not used
+    private elAnnotationRe = "(?<commentString><!--.*-->)"; // Element annotation
+
+    private markdownMediaRegex = new RegExp(
+        // Example: ![A doodle of an elephant|600x480](elephant.jpg "My favorite animal") <!-- element class="with-border" -->
+        [
+            `${this.embeddedRe}?`,
+            "\\[",
+            `${this.altCandidateRe}`, // TODO: Should be optional, need to fix tests
+            "\\]",
+            "\\(",
+            `${this.markdownMediaPathRe}${this.linkTitleRe}?`,
+            "\\)",
+            ` ?${this.elAnnotationRe}?`,
+        ].join(""),
+        "gi", // Global + case insensitive (for extensions)
+    );
+
+    private wikilinkMediaRegex = new RegExp(
+        // Example: [[elephant.jpg|A doodle of an elephant|600x480]]
+        [
+            "\\[\\[",
+            `${this.wikiMediaPathRe}`,
+            "\\|?",
+            `${this.altCandidateRe}?`,
+            "\\]\\]",
+        ].join(""),
+        "gi",
+    );
 
     constructor(utils: ObsidianUtils) {
         this.utils = utils;
@@ -159,9 +219,10 @@ export class MediaProcessor implements Processor {
             const size = parts.length > 1 ? parts[1] : parts[0];
             if (parts.length > 1) {
                 alt = parts[0];
+            } else {
+                alt = "";
             }
             commentString = this.buildComment(size, commentString) ?? "";
-            alt = "";
         }
         const type = mimeTypeFor(filePath);
 
