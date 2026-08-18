@@ -428,3 +428,20 @@ $$\lim_{t \to \infty} (w(t) - y(t)) = 0$$
     const result = JSON.stringify(sut.process(markdown, options));
     return expect(result).toMatchSnapshot();
 });
+
+test('Extended Markdown Syntax >  Ruby', () => {
+    const input = `## My Slide
+
+Ruby are usually used to render the pronounciation of East Asian characters.
+
+{明日|Ashita}
+
+{漢|ㄏㄢ}
+`;
+
+    const { options, markdown } = prepare(input);
+    const sut = new MarkdownProcessor(utilsInstance);
+
+    const result = JSON.stringify(sut.process(markdown, options));
+    return expect(result).toMatchSnapshot();
+});

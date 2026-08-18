@@ -21,6 +21,7 @@ import { MediaProcessor } from "./processors/mediaProcessor";
 import { MermaidProcessor } from "./processors/mermaidProcessor";
 import { MultipleFileProcessor } from "./processors/multipleFileProcessor";
 import { ReferenceProcessor } from "./processors/referenceProcessor";
+import { RubyProcessor } from "./processors/rubyProcessor";
 import { SkipSlideProcessor } from "./processors/skipSlideProcessor";
 import { TemplateProcessor } from "./processors/templateProcessor";
 
@@ -53,6 +54,7 @@ export class MarkdownProcessor {
     private referenceProcessor: ReferenceProcessor;
     private skipSlideProcessor: SkipSlideProcessor;
     private stripLatexBackTicks: Processor;
+    private rubyProcessor: RubyProcessor;
 
     constructor(utils: ObsidianUtils) {
         this.multipleFileProcessor = new MultipleFileProcessor(utils);
@@ -82,6 +84,7 @@ export class MarkdownProcessor {
                 return markdown.replaceAll("%`%", "");
             },
         };
+        this.rubyProcessor = new RubyProcessor();
     }
 
     process(markdown: string, options: Options) {
@@ -253,6 +256,8 @@ export class MarkdownProcessor {
                 name: "stripLatexBackTicks",
                 processor: this.stripLatexBackTicks,
             },
+            // Process ruby
+            { name: "rubyProcessor", processor: this.rubyProcessor },
         ].reduce(
             (md, step) => this.processWithLog(md, options, step),
             markdown,
