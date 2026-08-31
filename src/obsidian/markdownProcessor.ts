@@ -1,5 +1,6 @@
 import type { Options, Processor } from "../@types";
 import { YamlStore } from "../yaml/yamlStore";
+import { protectFencedCode } from "./fencedCode";
 import type { ObsidianUtils } from "./obsidianUtils";
 import { AutoClosingProcessor } from "./processors/autoClosingProcessor";
 import { BlockProcessor } from "./processors/blockProcessor";
@@ -18,7 +19,6 @@ import { IconsProcessor } from "./processors/iconsProcessor";
 import { InternalLinkProcessor } from "./processors/internalLinkProcessor";
 import { LatexProcessor } from "./processors/latexProcessor";
 import { MediaProcessor } from "./processors/mediaProcessor";
-import { MermaidProcessor } from "./processors/mermaidProcessor";
 import { MultipleFileProcessor } from "./processors/multipleFileProcessor";
 import { ReferenceProcessor } from "./processors/referenceProcessor";
 import { RubyProcessor } from "./processors/rubyProcessor";
@@ -39,7 +39,6 @@ export class MarkdownProcessor {
     private latexProcessor: LatexProcessor;
     private formatProcessor: FormatProcessor;
     private excalidrawProcessor: ExcalidrawProcessor;
-    private mermaidProcessor: MermaidProcessor;
     private fragmentProcessor: FragmentProcessor;
     private gridProcessor: GridProcessor;
     private commentProcessor: CommentProcessor;
@@ -65,7 +64,6 @@ export class MarkdownProcessor {
         this.latexProcessor = new LatexProcessor();
         this.formatProcessor = new FormatProcessor();
         this.excalidrawProcessor = new ExcalidrawProcessor(utils);
-        this.mermaidProcessor = new MermaidProcessor();
         this.fragmentProcessor = new FragmentProcessor();
         this.gridProcessor = new GridProcessor();
         this.commentProcessor = new CommentProcessor();
@@ -138,6 +136,9 @@ export class MarkdownProcessor {
                 before = after;
             }
 
+            // Protect fenced code before this iteration's includes/templates run
+            before = protectFencedCode(before);
+
             // Process multiple file includes first
             after = this.processWithLog(before, options, {
                 name: "multipleFileProcessor",
@@ -207,11 +208,6 @@ export class MarkdownProcessor {
             { name: "iconsProcessor", processor: this.iconsProcessor },
             // Process formatting
             { name: "formatProcessor", processor: this.formatProcessor },
-            // Convert mermaid code blocks
-            {
-                name: "mermaidProcessor",
-                processor: this.mermaidProcessor,
-            },
             // Process block syntax
             { name: "blockProcessor", processor: this.blockProcessor },
             // Process footnotes
